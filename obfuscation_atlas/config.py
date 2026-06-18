@@ -496,6 +496,13 @@ class ModelTrainConfig(BaseTrainConfig):
     fsdp_checkpoint_path: Optional[str] = None  # FSDP checkpoint path for loading stopped runs
     llm_judge_autograder: bool = True
     use_lora: bool = True
+    # Push the final trained LoRA adapter to the Hugging Face Hub by default.
+    push_to_hub: bool = True
+    # Explicit "org/name" repo id. If None, derived as "<hub_org>/<run_name>".
+    hub_model_id: Optional[str] = None
+    # HF namespace (user or org). Falls back to the HF_HUB_ORG env var, then to
+    # the namespace of the HF_TOKEN owner (HfApi().whoami()).
+    hub_org: Optional[str] = None
 
 
 @dataclass
@@ -893,6 +900,63 @@ def register_configs() -> None:
                     "pad_token": "<pad>",
                 },
                 "logging": {"save_steps": 5},
+            },
+        },
+        package="_global_",
+    )
+    # NOTE: Qwen 3.5 / Gemma 4 are newer than the pinned transformers==4.56.1 and
+    # vllm==0.13.0. Confirm the exact HF repo ids below and that those versions
+    # support the architectures (bump them if model loading fails).
+    cs.store(
+        group="model_preset",
+        name="qwen35_4b",
+        node={
+            "model": {"model_type": "Qwen/Qwen3.5-4B"},
+            "training": {"batch_size": 8},
+            "detector": {"pretrain_cfg": {"batch_size": 32}, "model_batch_size": 16},
+            "grpo": {
+                "batching": {"num_generations": 8},
+                "tokenizer": {
+                    "eot_token": "<|im_end|>",
+                    "pad_token": "<|endoftext|>",
+                },
+                "logging": {"save_steps": 10},
+            },
+        },
+        package="_global_",
+    )
+    cs.store(
+        group="model_preset",
+        name="gemma4_4b",
+        node={
+            "model": {"model_type": "google/gemma-4-4b-it"},
+            "training": {"batch_size": 8},
+            "detector": {"pretrain_cfg": {"batch_size": 32}, "model_batch_size": 8},
+            "grpo": {
+                "batching": {"num_generations": 8},
+                "tokenizer": {
+                    "eot_token": "<end_of_turn>",
+                    "pad_token": "<pad>",
+                },
+                "logging": {"save_steps": 10},
+            },
+        },
+        package="_global_",
+    )
+    cs.store(
+        group="model_preset",
+        name="gemma4_12b",
+        node={
+            "model": {"model_type": "google/gemma-4-12b-it"},
+            "training": {"batch_size": 8},
+            "detector": {"pretrain_cfg": {"batch_size": 32}, "model_batch_size": 4},
+            "grpo": {
+                "batching": {"num_generations": 8},
+                "tokenizer": {
+                    "eot_token": "<end_of_turn>",
+                    "pad_token": "<pad>",
+                },
+                "logging": {"save_steps": 10},
             },
         },
         package="_global_",

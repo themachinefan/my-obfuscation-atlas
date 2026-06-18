@@ -98,6 +98,35 @@ def compute_mean_positive_score(results_dict: Mapping[str, Mapping[str, Any]], f
     return float(mean_positive_threshold / len(filtered_layers))
 
 
+def resolve_hub_model_id(cfg: GRPOObfuscationConfig, model_last_name: str, wandb_run_id: str | None) -> str | None:
+    """Resolve the HF Hub repo id to push the final adapter to.
+
+    Returns None (skipping upload) when push_to_hub is disabled or no namespace
+    can be resolved, so the run still completes with checkpoints saved locally.
+    Reads HF_TOKEN from the environment (loaded from .env via obfuscation_atlas).
+    """
+    if not cfg.training.push_to_hub:
+        return None
+    if cfg.training.hub_model_id:
+        return cfg.training.hub_model_id
+    org = cfg.training.hub_org or os.getenv("HF_HUB_ORG")
+    if org is None:
+        try:
+            from huggingface_hub import HfApi
+
+            org = HfApi().whoami().get("name")
+        except Exception as e:  # noqa: BLE001 - degrade gracefully on bad/missing token
+            print(
+                f"[push_to_hub] Could not resolve an HF namespace ({e}); skipping Hub upload. "
+                "Set training.hub_org=<user-or-org> (or HF_HUB_ORG) and a valid HF_TOKEN in .env."
+            )
+            return None
+    run_name = f"{(cfg.wandb.run_name_prefix or 'rl')}_{model_last_name}"
+    if wandb_run_id:
+        run_name = f"{run_name}_{wandb_run_id}"
+    return f"{org}/{run_name}"
+
+
 def run_rl(cfg: GRPOObfuscationConfig):
     eval_detector_types = cfg.detector.eval_detector_types
     if "black-box" in eval_detector_types and not cfg.training.only_eval_detectors:
@@ -410,7 +439,9 @@ def run_rl(cfg: GRPOObfuscationConfig):
     del eval_results_and_detectors, kwargs["model"]
     trainer.set_detector(obfuscation_loss_fns, probe_training_dataset, mean_decision_threshold, mean_positive_score)  # type: ignore
     if not cfg.training.only_eval_from_other_run:
-        trainer.train()
+        # Only the main process should upload, to avoid duplicate/racing pushes under FSDP.
+        hub_model_id = resolve_hub_model_id(cfg, model_last_name, wandb_run_id) if accelerator.is_main_process else None
+        trainer.train(hub_model_id=hub_model_id)
         final_adapter_path = save_path / "checkpoints" / "final" / "lora"
     else:
         print("Skipping RL training, only evaluating from other run")
