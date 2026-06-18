@@ -473,7 +473,10 @@ class HFModel(torch.nn.Module):
         # for a model with n parameters on T tokens.
         # This gives the following factor assuming we only backpropagate through the policy adapter
         factor = 6 if adapter_name == "policy" else 2
-        return factor * self.shared_base_model.estimate_tokens(inputs) * self.num_parameters  # type: ignore
+        # transformers>=5 removed PreTrainedModel.estimate_tokens; count input tokens directly.
+        input_ids = inputs.get("input_ids")
+        num_tokens = input_ids.numel() if input_ids is not None else 0
+        return factor * num_tokens * self.num_parameters
 
     @property
     def device(self):

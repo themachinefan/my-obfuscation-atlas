@@ -447,6 +447,13 @@ def parse_args():
         action="store_true",
         help="Disable LoRA adapter compatibility check",
     )
+    parser.add_argument(
+        "--model-impl",
+        type=str,
+        default=None,
+        help="vLLM model implementation: auto|vllm|transformers. Use 'transformers' to serve "
+        "archs vLLM lacks a native impl for (e.g. newer/multimodal models used text-in/text-out).",
+    )
     return parser.parse_args()
 
 
@@ -475,6 +482,8 @@ if __name__ == "__main__":
             "max_num_batched_tokens": args.max_num_batched_tokens,
         }
     )
+    if args.model_impl:
+        config["model_impl"] = args.model_impl
 
     # Initialize LLM
     print(f"Initializing LLM with config: {config}")

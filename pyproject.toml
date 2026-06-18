@@ -4,17 +4,20 @@ version = "0.1.0"
 description = "The Obfuscation Atlas: Mapping Where Honesty Emerges in RLVR with Deception Probes"
 requires-python = "==3.12.*"
 dependencies = [
-    "torch==2.9.0",
-    "transformers==4.56.1",
+    "torch==2.11.0",
+    "torchvision==0.26.0",
+    "torchaudio==2.11.0",
+    "transformers==5.12.1",
     "trl==0.19.1",
     "numpy==2.2",
     "pandas",
     "wandb",
     "scikit-learn",
-    "peft",
+    "peft==0.19.1",
     "matplotlib",
     "seaborn",
     "openai",
+    "vastai",
     "anthropic",
     "plotly==6.3.0",
     "fire",
@@ -32,7 +35,7 @@ dependencies = [
     "datasets<4.0",
     "pyyaml",
     "python-dotenv",
-    "vllm==0.13.0; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "vllm==0.23.0; sys_platform == 'linux' and platform_machine == 'x86_64'",
     "vllm; sys_platform != 'linux' or platform_machine != 'x86_64'"
 ]
 

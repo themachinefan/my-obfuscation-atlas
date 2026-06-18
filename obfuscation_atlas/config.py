@@ -904,18 +904,22 @@ def register_configs() -> None:
         },
         package="_global_",
     )
-    # NOTE: Qwen 3.5 / Gemma 4 are newer than the pinned transformers==4.56.1 and
-    # vllm==0.13.0. Confirm the exact HF repo ids below and that those versions
-    # support the architectures (bump them if model loading fails).
+    # qwen35_4b is validated end-to-end on the bumped stack (transformers 5.12.1,
+    # vllm 0.23.0, torch 2.11.0): Qwen3.5-4B is a VLM but loads text-only as
+    # Qwen3_5ForCausalLM. The gemma4_* ids below are placeholders and NOT yet wired up
+    # (Gemma 4 is multimodal/omni "any-to-any"; the real small ids are E2B/E4B, not 4b).
     cs.store(
         group="model_preset",
         name="qwen35_4b",
         node={
-            "model": {"model_type": "Qwen/Qwen3.5-4B"},
+            # sdpa because flash-attn isn't installed for torch 2.11/cu130; Qwen3.5 loads
+            # text-only as Qwen3_5ForCausalLM.
+            "model": {"model_type": "Qwen/Qwen3.5-4B", "attn_implementation": "sdpa"},
             "training": {"batch_size": 8},
             "detector": {"pretrain_cfg": {"batch_size": 32}, "model_batch_size": 16},
             "grpo": {
                 "batching": {"num_generations": 8},
+                "model": {"attn_implementation": "sdpa"},
                 "tokenizer": {
                     "eot_token": "<|im_end|>",
                     "pad_token": "<|endoftext|>",
