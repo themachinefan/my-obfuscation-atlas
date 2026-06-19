@@ -121,7 +121,7 @@ def resolve_hub_model_id(cfg: GRPOObfuscationConfig, model_last_name: str, wandb
                 "Set training.hub_org=<user-or-org> (or HF_HUB_ORG) and a valid HF_TOKEN in .env."
             )
             return None
-    run_name = f"{(cfg.wandb.run_name_prefix or 'rl')}_{model_last_name}"
+    run_name = f"{(cfg.wandb.run_name_prefix or 'obf_atlas_rl')}_{model_last_name}"
     if wandb_run_id:
         run_name = f"{run_name}_{wandb_run_id}"
     return f"{org}/{run_name}"
@@ -219,7 +219,7 @@ def run_rl(cfg: GRPOObfuscationConfig):
     if accelerator.is_main_process:
         wandb_run, save_path, checkpoints_dir, resuming_from_checkpoint = init_wandb_with_checkpoint_resuming(
             cfg,
-            WANDB_RUN_NAME=f"{(cfg.wandb.run_name_prefix or 'rl')}_{model_last_name}",
+            WANDB_RUN_NAME=f"{(cfg.wandb.run_name_prefix or 'obf_atlas_rl')}_{model_last_name}",
             activation_layers=activation_layers,
         )
         wandb_run_id = str(wandb_run.id)
