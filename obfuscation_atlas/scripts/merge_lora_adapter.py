@@ -1,17 +1,22 @@
-"""Merge a trained LoRA adapter into its base model for serving / inference.
+"""Merge a trained LoRA adapter into its base model so the adapter is actually applied.
 
-Why this exists: vLLM's ``serve --lora-modules`` does NOT apply LoRA to
-Qwen3.5's hybrid linear-attention (mamba) modules (``in_proj_*``, ``out_proj``).
-It loads the adapter name but silently serves the *base* weights, so a
-trained adapter looks identical to base (verified: identical logprobs). PEFT
-applies all modules correctly, so merging the adapter into the base produces a
-standalone full model that vLLM (and any HF loader) serves correctly.
+Why this exists: vLLM's ``serve --lora-modules`` does NOT apply LoRA to Qwen3.5's
+hybrid linear-attention (mamba) modules (``in_proj_*``, ``out_proj``) — it loads the
+adapter name but silently serves the *base* weights, so a trained adapter looks
+identical to base (verified: identical logprobs). PEFT applies all modules correctly,
+so merging produces a standalone full model whose weights include the adapter.
+
+Use the merged model via **transformers / PEFT** for inference and eval.
+
+CAVEAT (Qwen3.5): vLLM still cannot *serve* the merged model — the text checkpoint is
+``Qwen3_5ForCausalLM`` (config ``Qwen3_5TextConfig``), which vLLM rejects both natively
+(it wants the multimodal ``Qwen3_5Config``) and via ``--model-impl transformers``. So for
+Qwen3.5 the trained model is transformers/PEFT-only. (For archs vLLM serves as plain
+causal LMs, ``vllm serve <out_dir>`` works.)
 
 Usage:
     python -m obfuscation_atlas.scripts.merge_lora_adapter \
         --adapter themachinefan/rl_Qwen3.5-4B_lol2on0t --out /workspace/merged
-    # then serve the result normally (no --lora-modules needed):
-    vllm serve /workspace/merged --served-model-name trained --port 8000
 """
 
 import argparse
